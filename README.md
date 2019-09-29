@@ -1,5 +1,5 @@
 ### kindling
-_n. material that can be readily ignited 🎇
+noun, /ˈkɪnd.lɪŋ/, **material that can be readily ignited**
 
 #### Work is heavily in progress, nothing to see yet, move along ✋👮👉 
 
