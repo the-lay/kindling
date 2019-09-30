@@ -1,5 +1,5 @@
 ### kinlin
-derived from kinling - noun, /ˈkɪnd.lɪŋ/, **a material that can be readily ignited**
+derived from kindling - noun, /ˈkɪnd.lɪŋ/, **a material that can be readily ignited**
 
 #### Work is heavily in progress, nothing to see yet, move along ✋👮👉 
 
