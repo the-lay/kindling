@@ -58,3 +58,6 @@ def open_file(path: Union[Path, str]):
 def get_current_git_head():
     # https://stackoverflow.com/questions/14989858/get-the-current-git-hash-in-a-python-script
     return subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip()
+
+def has_nan(x: torch.Tensor) -> bool:
+    return torch.isnan(x).any().item()

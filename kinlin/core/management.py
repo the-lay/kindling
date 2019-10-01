@@ -97,10 +97,12 @@ class Trainer:
 
         if verbose:
             print(f'Training{" and validating" if validation else ""} for {n_epochs} {"epochs" if n_epochs > 1 else "epoch"}')
-            print(self.model)
-            print(self.dataset)
-            # We are not wrapping optimizer, so describing it manually
-            print('')
+            print(f'Network: {self.model.name}, {self.model.get_param_count(readable_str=True)} parameters')
+            print(f'Loss: TODO')
+            print(f'Metrics: TODO')
+            print(f'Dataset: TODO')
+            print(f'Optimizer: {self.optimizer.__class__.__name__}, lr: {self.optimizer.param_groups[0]["lr"]}')
+            print(f'Callbacks: TODO')
 
         for epoch in range(n_epochs):
             print(f'\nEpoch {epoch}:')
@@ -136,12 +138,13 @@ class Trainer:
                             self.model.on_batch_start(batch, batch_id, epoch, validation=True)
                             self.model.validation_fn(batch, batch_id, epoch)
                             self.model.on_batch_finish(batch, batch_id, epoch, validation=True)
-                            self.model.
+
                             if verbose:
                                 # TODO put metrics here
                                 t.set_postfix()
                 self.model.on_validation_finish(epoch)
 
             self.model.on_epoch_finish(epoch)
+
 
 

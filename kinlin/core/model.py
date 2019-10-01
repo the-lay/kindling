@@ -1,17 +1,31 @@
 import torch
+from typing import Union
 
 class Model:
 
-    def __init__(self, network: torch.nn.Module):
+    def __init__(self, network: torch.nn.Module, name: str = 'Untitled model', ):
         # network
         self.network: torch.nn.Module = network
+        self.name: str = name
         # training_fn
         # validation_fn
-        # loss_fn
+        # losses and weights
         # metrics
         # hyper parameters
 
         pass
+
+    def get_param_count(self, readable_str: bool = False):
+        params = sum(p.numel() for p in self.network.parameters() if p.requires_grad)
+
+        if readable_str:
+            for unit in ['', 'K', 'M', 'B']:
+                if params < 1000:
+                    break
+                params /= 1000
+            return f'{params:.3f}{unit}'
+        else:
+            return params
 
     def on_epoch_start(self, epoch: int):
         pass

@@ -1,10 +1,11 @@
-from kindling import *
+import torch
+import kindling as kin
 
 ### Very abstract overview how one would use kindling when it's done
 ### Ideally each file = one full experiment
 
 # Project management
-project = Project(name='my new paper', notes='doing this and that for these and those', path='C:/path')
+project = kin.Project(name='my new paper', notes='doing this and that for these and those', path='C:/path')
 experiment = project.new_experiment(...) # seed, experiment name,
 
 # Dataset definition
@@ -33,12 +34,18 @@ class MyNewModel(Model):
     def on_validation_finish(self, epoch: int):
         pass
 
+    def on_epoch_finish(self, epoch: int):
+        # every tenth epoch
+        if epoch % 10 == 0:
+            pass
+
 # Metrics and callbacks
 metrics = []
 callbacks = []
 
 # compile model
 model = MyNewModel(metrics=metrics, )
+model.load_checkpoint_epoch()
 
 # Actual actions of the experiment
 trainer = Trainer(model, dataset, optimizer, experiment=experiment)
