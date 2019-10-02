@@ -1,46 +1,25 @@
 import torch
-from typing import Union
+from typing import Union, List, Callable
+from .utils import generate_random_id
+from .metric import Metric
 
 class Model:
 
-    def __init__(self, network: torch.nn.Module, name: str = 'Untitled model', ):
-        # network
+    def __init__(self, network: torch.nn.Module, metrics: List[Metric], name: str = None, ):
+        # properties
+        self.id: str = generate_random_id()
         self.network: torch.nn.Module = network
-        self.name: str = name
-        # training_fn
-        # validation_fn
-        # losses and weights
-        # metrics
-        # hyper parameters
+        self.metrics: List[Metric] = metrics
+        self.name: str = name if name else self.network.__class__.__name__
 
-        pass
+        # # Support one or multiple loss functions
+        # self.loss_fn: Union[List[Callable], Callable]
+        # self.loss_weights: Union[List[float], float]
 
-    def get_param_count(self, readable_str: bool = False):
-        params = sum(p.numel() for p in self.network.parameters() if p.requires_grad)
+### Methods called by training runners
 
-        if readable_str:
-            for unit in ['', 'K', 'M', 'B']:
-                if params < 1000:
-                    break
-                params /= 1000
-            return f'{params:.3f}{unit}'
-        else:
-            return params
-
-    def on_epoch_start(self, epoch: int):
-        pass
-
-    def on_training_start(self, epoch: int):
-        pass
-
-    def on_validation_start(self, epoch: int):
-        pass
-
-    def on_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int, validation: bool):
-        pass
-
-    # must return loss to backprop
     def training_fn(self, batch: torch.Tensor, batch_id: int, epoch: int) -> torch.Tensor:
+        # must return loss to backprop
         raise NotImplementedError
 
     def backprop_fn(self, loss, optimizer):
@@ -51,19 +30,61 @@ class Model:
     def validation_fn(self, batch: torch.Tensor, batch_id: int, epoch: int):
         raise NotImplementedError
 
-    def on_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int, validation: bool):
-        pass
+### General methods
+    def nparams(self, readable_units: bool = False) -> Union[int, str]:
+        params = sum(p.numel() for p in self.network.parameters() if p.requires_grad)
 
-    def on_training_finish(self, epoch:int):
-        pass
+        if readable_units:
+            for unit in ['', 'K', 'M', 'B']:
+                if params < 1000:
+                    break
+                params /= 1000
+            return f'{params:.3f}{unit}'
+        else:
+            return params
 
-    def on_validation_finish(self, epoch: int):
+    def __repr__(self):
+        summary = f'Model "{self.name}":\n' \
+                  f'\tParameters: {self.nparams(readable_units=True)}\n' \
+                  f'\tTODO\n'
+
+        # metrics
+        summary += '\tMetrics:\n'
+        for m in self.metrics:
+            summary += f'\t\t{m.name}: \n' # TODO
+
+        return summary
+
+    def print_summary(self):
+        print(repr(self))
+
+### Events
+    def on_epoch_start(self, epoch: int):
         pass
 
     def on_epoch_finish(self, epoch: int):
-        # TODO callbacks
-        # TODO metrics
         pass
 
-    def __str__(self):
-        return 'TODO'  # TODO
+    def on_training_epoch_start(self, epoch: int):
+        pass
+
+    def on_training_epoch_finish(self, epoch: int):
+        pass
+
+    def on_validation_epoch_start(self, epoch: int):
+        pass
+
+    def on_validation_epoch_finish(self, epoch: int):
+        pass
+
+    def on_training_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int, validation: bool):
+        pass
+
+    def on_training_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int, validation: bool):
+        pass
+
+    def on_validation_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int, validation: bool):
+        pass
+
+    def on_validation_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int, validation: bool):
+        pass

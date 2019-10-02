@@ -14,6 +14,7 @@ The idea is to have a framework on top of PyTorch that can make research experim
     - Save all actions that were used in the experiment process
 - Handle training/validation process
     - Fully flexible (user-defined) training and validation
+    - Fit for most of the CNN experimentations, and easily extended for other types of NN
     - Pretty and useful feedback
     - Support for metrics (associated with model) and callbacks (associated with training/validation process)
     - Automatically sync metrics with tensorboard for realtime visualization

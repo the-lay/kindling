@@ -1,8 +1,9 @@
 import setuptools
+import re
 
 # version fetch
-with open('kindling/version.py', 'r') as f:
-    exec(f.read())
+with open('kinlin/__init__.py', 'r') as f:
+    version = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", f, re.M).group(1)
 
 # readme fetch
 with open('README.md', 'r') as f:
@@ -10,11 +11,11 @@ with open('README.md', 'r') as f:
 
 setuptools.setup(
     name='kinlin',
-    version=__version__,
+    version=version,
     description='WIP', # TODO
     long_description=long_description,
     long_description_content_type='text/markdown',
-    # license='', # TODO
+    license='BSD',
     author='the-lay',
     author_email='ilja.gubin@gmail.com',
     url='https://github.com/the-lay/kinlin',
