@@ -1,10 +1,7 @@
 import random
 import sys
-import string
 import subprocess
 import platform
-import unicodedata
-import re
 import string
 from typing import Union
 from pathlib import Path
@@ -35,12 +32,12 @@ def set_seed(seed: int, cudnn_deterministic: bool = False) -> None:
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-def fast_histogram(true: torch.Tensor, pred: torch.Tensor, num_classes: int) -> torch.Tensor:
+def fast_histogram(y_pred: torch.Tensor, y_true: torch.Tensor, num_classes: int) -> torch.Tensor:
     # https://github.com/kevinzakka/pytorch-goodies/blob/master/metrics.py
 
-    mask = (true >= 0) & (true < num_classes)
+    mask = (y_true >= 0) & (y_true < num_classes)
     hist = torch.bincount(
-        num_classes * true[mask] + pred[mask],
+        num_classes * y_true[mask] + y_pred[mask],
         minlength=num_classes ** 2,
     ).reshape(num_classes, num_classes).float()
     return hist
@@ -70,12 +67,12 @@ def get_current_git_head() -> str:
 def has_nan(x: torch.Tensor) -> bool:
     return torch.isnan(x).any().item()
 
-def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
-    # Convert (N, ...) to (N, num_classes, ...)
-    onehot = torch.zeros(indices.shape[0], num_classes, *indices.shape[1:],
-                         dtype=torch.uint8,
-                         device=indices.device)
-    return onehot.scatter_(1, indices.unsqueeze(1), 1)
+def to_onehot(tensor: torch.Tensor, num_classes: int) -> torch.Tensor:
+    # (N, D, H, W) to (N, num_classes, D, H, W)
+    onehot = torch.zeros(tensor.shape[0], num_classes, *tensor.shape[1:],
+                         dtype=torch.int32,
+                         device=tensor.device)
+    return onehot.scatter_(1, tensor.unsqueeze(1), 1)
 
 def second_to_h_m_s(time: int) -> (int, int, int):
     # https://github.com/pytorch/ignite/blob/master/ignite/_utils.py

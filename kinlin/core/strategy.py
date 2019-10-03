@@ -43,21 +43,23 @@ class SupervisedTraining:
         # event handlers
         self.handlers = {k: [] for k in TrainingEvents}
 
-        # register events
         for event in TrainingEvents:
-            # model events
+            # register model events
             self.on_event(event, getattr(self.model, event.value))
 
-            # register callbacks
+            # register callback events
             for callback in self.callbacks:
                 self.on_event(event, getattr(callback, event.value))
+
+        # register metric events
+        # TODO
 
     def on_event(self, event: TrainingEvents, handler: Callable):
         self.handlers[event].append(handler)
 
-    def register_callback(self, callback: Callback):
-        for event in TrainingEvents:
-            self.on_event(event, getattr(callback, event.value))
+    # def register_callback(self, callback: Callback):
+    #     for event in TrainingEvents:
+    #         self.on_event(event, getattr(callback, event.value))
 
     def emit(self, event: TrainingEvents, *args, **kwargs):
         for handler in self.handlers[event]:
@@ -85,14 +87,13 @@ class SupervisedTraining:
 
             with tqdm(self.dataset.training_dataloader(), desc='Training', unit='batch') as t:
                 for batch_id, batch in enumerate(t):
-                    self.emit(TrainingEvents.TRAINING_BATCH_START, batch, batch_id, epoch, validation=False)
-                    loss = self.model.training_fn(batch, batch_id, epoch)
+                    self.emit(TrainingEvents.TRAINING_BATCH_START, batch, batch_id, epoch)
+                    loss, y_pred, y_true = self.model.training_fn(batch, batch_id, epoch)
                     self.model.backprop_fn(loss, self.optimizer)
-                    self.emit(TrainingEvents.TRAINING_BATCH_FINISH, batch, batch_id, epoch, validation=False)
+                    self.emit(TrainingEvents.TRAINING_BATCH_FINISH, batch, batch_id, epoch, y_pred, y_true)
 
-                    if verbose:
-                        # TODO put metrics here
-                        t.set_postfix()
+                    # update progress bar
+                    t.set_postfix({k.__class__.__name__: k.value for k in self.model.metrics['training']})
 
             self.emit(TrainingEvents.TRAINING_EPOCH_FINISH, epoch)
 
@@ -105,14 +106,17 @@ class SupervisedTraining:
                 with torch.no_grad():
                     with tqdm(self.dataset.validation_dataloader(), desc='Validation', unit='batch') as t:
                         for batch_id, batch in enumerate(t):
-                            self.emit(TrainingEvents.VALIDATION_BATCH_START, batch, batch_id, epoch, validation=False)
-                            self.model.validation_fn(batch, batch_id, epoch)
-                            self.emit(TrainingEvents.VALIDATION_BATCH_FINISH, batch, batch_id, epoch, validation=False)
+                            self.emit(TrainingEvents.VALIDATION_BATCH_START, batch, batch_id, epoch)
+                            loss, y_pred, y_true = self.model.validation_fn(batch, batch_id, epoch)
+                            self.emit(TrainingEvents.VALIDATION_BATCH_FINISH, batch, batch_id, epoch, y_pred, y_true)
 
-                            if verbose:
-                                # TODO put metrics here
-                                t.set_postfix()
+                            # update progress bar
+                            t.set_postfix({k.__class__.__name__: k.value for k in self.model['validation']})
 
                 self.emit(TrainingEvents.VALIDATION_EPOCH_FINISH, epoch)
 
             self.emit(TrainingEvents.EPOCH_FINISH, epoch)
+
+    # TODO
+    def test(self):
+        pass

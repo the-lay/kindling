@@ -1,5 +1,5 @@
 ### kinlin
-derived from kindling - noun, /ˈkɪnd.lɪŋ/, **a material that can be readily ignited**
+_derived from **kindling** (n., /ˈkɪnd.lɪŋ/) - material that can be readily ignited_
 
 #### Work is heavily in progress, nothing to see yet, move along ✋👮👉 
 
@@ -28,8 +28,8 @@ The idea is to have a framework on top of PyTorch that can make research experim
 #### Overview of classes
 - Projects have Experiments
 - Each Experiment should track everything that you did to your Model (a log: each event start and finish)
-- Model is a combination of pytorch network, hyperparameters and functions defining training, validation and testing
-- You can train/validate with Trainer
-- Trainer connects Dataset, Model, pytorch optimizer, Callbacks (like scheduler, checkpointer etc.) and Metrics
+- Model is a combination of pytorch network and functions defining training, validation and testing
+- You can train (and validate) with TrainingStrategy, for example SupervisedTraining
+- Strategy combines Dataset, Model, PyTorch optimizer, Callbacks (like scheduler, checkpointer etc.) and model's metrics
 
 Example: check out `target_example_usage.py`

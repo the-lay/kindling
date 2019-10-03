@@ -2,9 +2,6 @@ from typing import List, Union
 from .project import Project
 from .utils import *
 
-
-
-
 class Experiment:
 
     def __init__(self, project: Project, name: str = 'Untitled Experiment', notes: str = '', seed: int = None,
