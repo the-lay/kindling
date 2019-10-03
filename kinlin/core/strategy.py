@@ -9,7 +9,6 @@ from .model import Model
 from .dataset import Dataset
 from .experiment import Experiment
 from .callback import Callback
-from .metric import Metric
 
 class TrainingEvents(Enum):
     EPOCH_START = 'on_epoch_start',
@@ -43,23 +42,38 @@ class SupervisedTraining:
         # event handlers
         self.handlers = {k: [] for k in TrainingEvents}
 
+        # register model events
         for event in TrainingEvents:
-            # register model events
             self.on_event(event, getattr(self.model, event.value))
 
-            # register callback events
-            for callback in self.callbacks:
-                self.on_event(event, getattr(callback, event.value))
+        # register callback events
+        for callback in self.callbacks:
+            self.register_callback(callback)
 
         # register metric events
-        # TODO
+        # TODO there must be a prettier way
+        for metric in self.model.metrics['general']:
+            self.on_event(TrainingEvents.EPOCH_START, getattr(metric, TrainingEvents.EPOCH_START.value))
+            self.on_event(TrainingEvents.EPOCH_FINISH, getattr(metric, TrainingEvents.EPOCH_FINISH.value))
+
+        for metric in self.model.metrics['training']:
+            self.on_event(TrainingEvents.EPOCH_START, getattr(metric, TrainingEvents.EPOCH_START.value))
+            self.on_event(TrainingEvents.EPOCH_FINISH, getattr(metric, TrainingEvents.EPOCH_FINISH.value))
+            self.on_event(TrainingEvents.TRAINING_BATCH_START, getattr(metric, 'on_batch_start'))
+            self.on_event(TrainingEvents.TRAINING_BATCH_FINISH, getattr(metric, 'on_batch_finish'))
+
+        for metric in self.model.metrics['validation']:
+            self.on_event(TrainingEvents.EPOCH_START, getattr(metric, TrainingEvents.EPOCH_START.value))
+            self.on_event(TrainingEvents.EPOCH_FINISH, getattr(metric, TrainingEvents.EPOCH_FINISH.value))
+            self.on_event(TrainingEvents.VALIDATION_BATCH_START, getattr(metric, 'on_batch_start'))
+            self.on_event(TrainingEvents.VALIDATION_BATCH_FINISH, getattr(metric, 'on_batch_finish'))
 
     def on_event(self, event: TrainingEvents, handler: Callable):
         self.handlers[event].append(handler)
 
-    # def register_callback(self, callback: Callback):
-    #     for event in TrainingEvents:
-    #         self.on_event(event, getattr(callback, event.value))
+    def register_callback(self, callback: Callback):
+        for event in TrainingEvents:
+            self.on_event(event, getattr(callback, event.value))
 
     def emit(self, event: TrainingEvents, *args, **kwargs):
         for handler in self.handlers[event]:
@@ -90,7 +104,7 @@ class SupervisedTraining:
                     self.emit(TrainingEvents.TRAINING_BATCH_START, batch, batch_id, epoch)
                     loss, y_pred, y_true = self.model.training_fn(batch, batch_id, epoch)
                     self.model.backprop_fn(loss, self.optimizer)
-                    self.emit(TrainingEvents.TRAINING_BATCH_FINISH, batch, batch_id, epoch, y_pred, y_true)
+                    self.emit(TrainingEvents.TRAINING_BATCH_FINISH, batch, batch_id, epoch, loss, y_pred, y_true)
 
                     # update progress bar
                     t.set_postfix({k.__class__.__name__: k.value for k in self.model.metrics['training']})
@@ -108,7 +122,7 @@ class SupervisedTraining:
                         for batch_id, batch in enumerate(t):
                             self.emit(TrainingEvents.VALIDATION_BATCH_START, batch, batch_id, epoch)
                             loss, y_pred, y_true = self.model.validation_fn(batch, batch_id, epoch)
-                            self.emit(TrainingEvents.VALIDATION_BATCH_FINISH, batch, batch_id, epoch, y_pred, y_true)
+                            self.emit(TrainingEvents.VALIDATION_BATCH_FINISH, batch, batch_id, epoch, loss, y_pred, y_true)
 
                             # update progress bar
                             t.set_postfix({k.__class__.__name__: k.value for k in self.model['validation']})

@@ -1,7 +1,7 @@
 from .project import Project
 from .experiment import Experiment
 from .model import Model
-from .metric import Metric
+from .metric import Metric, RunningMetric
 from .strategy import TrainingEvents, SupervisedTraining
 from .callback import Callback
 from .dataset import Dataset
@@ -11,7 +11,7 @@ __all__ = [
     'Project',
     'Experiment',
     'Model',
-    'Metric',
+    'Metric', 'RunningMetric',
     'TrainingEvents', 'SupervisedTraining',
     'Callback',
     'Dataset',

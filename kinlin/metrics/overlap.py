@@ -1,7 +1,7 @@
 from typing import List, Any, Union
 import torch
 import torch.nn.functional as F
-from core import Metric
+from core import Metric, RunningMetric
 from core.utils import to_onehot
 
 ### Classwise metrics
@@ -9,18 +9,19 @@ from core.utils import to_onehot
 # Tversky index: https://en.wikipedia.org/wiki/Tversky_index
 # a = b = 0.5 = dice coefficient
 # a = b = 1 = jaccard index / tanimoto coefficient
-class ClasswiseTverskyIndex(Metric):
+class ClasswiseTverskyIndex(RunningMetric):
     def __init__(self, n_classes: int, alpha: float = 0.5, beta: float = 0.5, name: str = None, eps: float = 1e-7):
+        super(ClasswiseTverskyIndex, self).__init__()
         self.n_classes = n_classes
         self.alpha = alpha
         self.beta = beta
         self.eps = eps
-        super(ClasswiseTverskyIndex, self).__init__(name=name)
+        self.name = name
 
     def reset(self) -> None:
         self.value = None
 
-    def __call__(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
+    def on_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int, loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
         y_true_onehot = to_onehot(y_true, self.n_classes).float()
         prob = F.softmax(y_pred, dim=1)
 
@@ -33,7 +34,7 @@ class ClasswiseTverskyIndex(Metric):
         den = intersection + (self.alpha * fps) + (self.beta * fns)
         tversky_index = (num / (den + self.eps))
 
-        self.update(tversky_index)
+        self.set(tversky_index)
 
 class ClasswiseDiceCoefficient(ClasswiseTverskyIndex):
     def __init__(self, n_classes: int):
@@ -50,9 +51,9 @@ class ClasswiseTanimotoCoefficient(ClasswiseJaccardIndex):
 
 ### Averaged metrics
 class TverskyIndex(ClasswiseTverskyIndex):
-    def __call__(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
-        super(TverskyIndex, self).__call__(y_pred, y_true)
-        self.set(self.value.mean())
+    def on_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int, loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
+        super(TverskyIndex, self).on_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
+        self.value = self.value.mean()
 
 class DiceCoefficient(TverskyIndex):
     def __init__(self, n_classes: int):

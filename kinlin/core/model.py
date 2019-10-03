@@ -50,7 +50,7 @@ class Model:
     def testing_fn(self, batch: torch.Tensor, batch_id: int, epoch: int) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError
 
-### General methods - not really meant to be overriden
+### General methods
     def nparams(self, readable_units: bool = False) -> Union[int, str]:
         params = sum(p.numel() for p in self.network.parameters() if p.requires_grad)
 
@@ -106,45 +106,33 @@ class Model:
         self.metrics['validation'].append(Loss())
         self.metrics['validation'].append(Accuracy())
 
-    def update_validation_metrics(self, y_pred: torch.Tensor, y_true: torch.Tensor, loss: torch.Tensor):
-        for m in self.metrics['validation']:
-            m(y_pred, y_true)
-
-    def update_training_metrics(self, y_pred: torch.Tensor, y_true: torch.Tensor, loss: torch.Tensor):
-        for m in self.metrics['training']:
-            m(y_pred, y_true)
-
-    def update_general_metrics(self, epoch: int):
-        for m in self.metrics['general']:
-            m(epoch)
-
-### Events - fully meant to be overriden
-    def on_epoch_start(self, epoch: int):
+### Events - meant to be defined on demand
+    def on_epoch_start(self, epoch: int) -> None:
         pass
 
-    def on_epoch_finish(self, epoch: int):
+    def on_epoch_finish(self, epoch: int) -> None:
         pass
 
-    def on_training_epoch_start(self, epoch: int):
+    def on_training_epoch_start(self, epoch: int) -> None:
         pass
 
-    def on_training_epoch_finish(self, epoch: int):
+    def on_training_epoch_finish(self, epoch: int) -> None:
         pass
 
-    def on_validation_epoch_start(self, epoch: int):
+    def on_validation_epoch_start(self, epoch: int) -> None:
         pass
 
-    def on_validation_epoch_finish(self, epoch: int):
+    def on_validation_epoch_finish(self, epoch: int) -> None:
         pass
 
-    def on_training_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int):
+    def on_training_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int) -> None:
         pass
 
-    def on_training_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int, y_pred: torch.Tensor, y_true: torch.Tensor):
+    def on_training_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int, loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
         pass
 
-    def on_validation_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int):
+    def on_validation_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int) -> None:
         pass
 
-    def on_validation_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int, y_pred: torch.Tensor, y_true: torch.Tensor):
+    def on_validation_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int, loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
         pass
