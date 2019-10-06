@@ -1,27 +1,27 @@
 import torch
 from typing import Union, List, Callable, Tuple
 from .utils import generate_random_id
-from .metric import Metric, Epoch, Accuracy, Loss
+from .metric import Metric, Epoch, Accuracy, Loss, EpochTimer
 
 class Model:
 
-    def __init__(self, network: torch.nn.Module, epoch_metrics: List[Metric] = None,  training_metrics: List[Metric] = None,
-                 validation_metrics: List[Metric] = None, name: str = None):
+    def __init__(self, network: torch.nn.Module, name: str = None, metrics: List[Metric] = None):
+
         # properties
         self.id: str = generate_random_id()
-        self.network: torch.nn.Module = network
-        self.metrics = {
-            'general': epoch_metrics if epoch_metrics else [],
-            'training': training_metrics if training_metrics else [],
-            'validation': validation_metrics if validation_metrics else []
-        }
         self.name: str = name if name else self.network.__class__.__name__
+        self.network: torch.nn.Module = network
+        self.metrics = metrics if metrics else []
 
         # set default metrics
-        self.reset_metrics()
+        self.metrics.append(Epoch())
+        self.metrics.append(Loss())
+        self.metrics.append(Accuracy())
+        self.metrics.append(EpochTimer())
 
 ### Methods called by training strategies
-    def training_fn(self, batch: torch.Tensor, batch_id: int, epoch: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def training_fn(self, batch: torch.Tensor, batch_id: int, epoch: int)\
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Method should describe training process on one batch and return loss, y_pred and y_true
         :param batch:
@@ -32,12 +32,13 @@ class Model:
         # must return loss to backprop
         raise NotImplementedError
 
-    def backprop_fn(self, loss, optimizer):
+    def backprop_fn(self, loss: torch.Tensor, optimizer: torch.optim.Optimizer) -> None:
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-    def validation_fn(self, batch: torch.Tensor, batch_id: int, epoch: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def validation_fn(self, batch: torch.Tensor, batch_id: int, epoch: int)\
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
 
         :param batch:
@@ -47,12 +48,15 @@ class Model:
         """
         raise NotImplementedError
 
-    def testing_fn(self, batch: torch.Tensor, batch_id: int, epoch: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def testing_fn(self, batch: torch.Tensor, batch_id: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         raise NotImplementedError
 
 ### General methods
-    def nparams(self, readable_units: bool = False) -> Union[int, str]:
-        params = sum(p.numel() for p in self.network.parameters() if p.requires_grad)
+    def nparams(self, readable_units: bool = False, trainable: bool = True) -> Union[int, str]:
+        if trainable:
+            params = sum(p.numel() for p in self.network.parameters() if p.requires_grad)
+        else:
+            params = sum(p.numel() for p in self.network.parameters())
 
         if readable_units:
             for unit in ['', 'K', 'M', 'B']:
@@ -65,74 +69,103 @@ class Model:
 
     def __repr__(self):
         summary = f'Model "{self.name}":\n' \
-                  f'\tParameters: {self.nparams(readable_units=True)}\n'
+                  f'\tTrainable parameters: {self.nparams(readable_units=True)}\n'
 
         # metrics
-        summary += '\tGeneral metrics:\n'
-        for m in self.metrics['general']:
+        summary += f'\tMetrics:\n'
+        for m in self.metrics:
             summary += f'\t\t{m.name}: {m.value}\n'
-
-        if len(self.metrics['training']) > 0:
-            summary += '\tTraining metrics:\n'
-            for m in self.metrics['training']:
-                summary += f'\t\t{m.name}: {m.value}\n'
-
-        if len(self.metrics['validation']) > 0:
-            summary += '\tValidation metrics:\n'
-            for m in self.metrics['validation']:
-                summary += f'\t\t{m.name}: {m.value}\n'
 
         return summary
 
     def print_summary(self) -> None:
         print(repr(self))
 
-### Metrics handling - not really meant to be overriden
-    def reset_metrics(self, stage: str = 'all'):
-        if stage not in ['all'] or stage not in self.metrics:
-            raise ValueError('No such stage')
+### Events
+    def on_start(self) -> None:
+        for m in self.metrics:
+            m.on_start()
 
-        if stage == 'all':
-            for s in self.metrics:
-                self.reset_metrics(s)
-        else:
-            for m in self.metrics[stage]:
-                m.reset()
+    def on_finish(self) -> None:
+        for m in self.metrics:
+            m.on_finish()
 
-        # default metrics
-        self.metrics['general'].append(Epoch())
-        self.metrics['training'].append(Loss())
-        self.metrics['training'].append(Accuracy())
-        self.metrics['validation'].append(Loss())
-        self.metrics['validation'].append(Accuracy())
-
-### Events - meant to be defined on demand
     def on_epoch_start(self, epoch: int) -> None:
-        pass
+        for m in self.metrics:
+            m.on_epoch_start(epoch)
 
     def on_epoch_finish(self, epoch: int) -> None:
-        pass
+        for m in self.metrics:
+            m.on_epoch_finish(epoch)
+
+    def on_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int) -> None:
+        for m in self.metrics:
+            m.on_batch_start(batch, batch_id, epoch)
+
+    def on_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int,
+                        loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
+        for m in self.metrics:
+            m.on_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
 
     def on_training_epoch_start(self, epoch: int) -> None:
-        pass
+        for m in self.metrics:
+            m.on_training_epoch_start(epoch)
+        self.on_epoch_start(epoch)
 
     def on_training_epoch_finish(self, epoch: int) -> None:
-        pass
+        for m in self.metrics:
+            m.on_training_epoch_finish(epoch)
+        self.on_epoch_finish(epoch)
 
     def on_validation_epoch_start(self, epoch: int) -> None:
-        pass
+        for m in self.metrics:
+            m.on_validation_epoch_start(epoch)
+        self.on_epoch_start(epoch)
 
     def on_validation_epoch_finish(self, epoch: int) -> None:
-        pass
+        for m in self.metrics:
+            m.on_validation_epoch_finish(epoch)
+        self.on_epoch_finish(epoch)
+
+    def on_testing_start(self) -> None:
+        for m in self.metrics:
+            m.on_testing_start()
+        self.on_epoch_start(-1)
+
+    def on_testing_finish(self) -> None:
+        for m in self.metrics:
+            m.on_testing_finish()
+        self.on_epoch_finish(-1)
 
     def on_training_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int) -> None:
-        pass
+        for m in self.metrics:
+            m.on_training_batch_start(batch, batch_id, epoch)
+        self.on_batch_start(batch, batch_id, epoch)
 
-    def on_training_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int, loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
-        pass
+    def on_training_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int,
+                                 loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
+        for m in self.metrics:
+            m.on_training_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
+        self.on_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
 
     def on_validation_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int) -> None:
-        pass
+        for m in self.metrics:
+            m.on_validation_batch_start(batch, batch_id, epoch)
+        self.on_batch_start(batch, batch_id, epoch)
 
-    def on_validation_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int, loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
-        pass
+    def on_validation_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int,
+                                   loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
+        for m in self.metrics:
+            m.on_validation_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
+        self.on_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
+
+    def on_testing_batch_start(self, batch: torch.Tensor, batch_id: int) -> None:
+        for m in self.metrics:
+            m.on_testing_batch_start(batch, batch_id)
+        self.on_batch_start(batch, batch_id, -1)
+
+    def on_testing_batch_finish(self, batch: torch.Tensor, batch_id: int,
+                                loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
+        for m in self.metrics:
+            m.on_testing_batch_finish(batch, batch_id, loss, y_pred, y_true)
+        self.on_batch_finish(batch, batch_id, -1, loss, y_pred, y_true)

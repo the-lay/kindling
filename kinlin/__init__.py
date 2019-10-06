@@ -1,8 +1,10 @@
 from .core import Project, Experiment, Model, TrainingEvents, SupervisedTraining, Callback, Dataset
 from .core import utils
-# TODO add these later
-# import metrics
-# import networks
-# import callbacks
+from . import metrics
+from . import callbacks
+from . import networks
+from . import datasets
+from . import losses
 
-__version__ = '0.0.1'
+
+__version__ = "0.0.1"

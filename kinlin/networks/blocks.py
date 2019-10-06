@@ -28,7 +28,7 @@ def init_weights(net: nn.Module, init_type: str = 'normal', init_gain: float = 0
             if hasattr(m, 'bias') and m.bias is not None:
                 init.constant_(m.bias.data, 0.0)
         elif classname.find('BatchNorm') != -1:
-            init.normal_(m.weight.data, 1.0, init_gain)
+            init.normal_(m.weight.data, 1.0)
             init.constant_(m.bias.data, 0.0)
 
     net.apply(init_func)

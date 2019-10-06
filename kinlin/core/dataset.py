@@ -4,10 +4,12 @@
 # ImageDataset
 from typing import List
 from torch.utils.data import DataLoader
+from torch.utils.data import Dataset as TorchDataset
 
 class Dataset:
 
-    def __init__(self, split: List[float], batch_sizes: List[int], augmentation: List):
+    def __init__(self, datasets: List[TorchDataset], split: List[float], batch_sizes: List[int], augmentation: List):
+        self.datasets: List[TorchDataset] = datasets
         self.split: List[float] = split
         self.batch_sizes: List[int] = batch_sizes
         pass

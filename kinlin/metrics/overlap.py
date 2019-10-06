@@ -1,15 +1,15 @@
 from typing import List, Any, Union
 import torch
 import torch.nn.functional as F
-from core import Metric, RunningMetric
-from core.utils import to_onehot
+from kinlin.core import Metric, RunningEpochMetric
+from kinlin.core.utils import to_onehot
 
 ### Classwise metrics
 
 # Tversky index: https://en.wikipedia.org/wiki/Tversky_index
 # a = b = 0.5 = dice coefficient
 # a = b = 1 = jaccard index / tanimoto coefficient
-class ClasswiseTverskyIndex(RunningMetric):
+class ClasswiseTverskyIndex(RunningEpochMetric):
     def __init__(self, n_classes: int, alpha: float = 0.5, beta: float = 0.5, name: str = None, eps: float = 1e-7):
         super(ClasswiseTverskyIndex, self).__init__()
         self.n_classes = n_classes
@@ -18,8 +18,11 @@ class ClasswiseTverskyIndex(RunningMetric):
         self.eps = eps
         self.name = name
 
-    def reset(self) -> None:
-        self.value = None
+    def print(self) -> str:
+        return f'[{",".join(f"{k:.3f}" for k in self.value)}]'
+
+    def on_epoch_start(self, epoch: int) -> None:
+        self.value = []
 
     def on_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int, loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
         y_true_onehot = to_onehot(y_true, self.n_classes).float()

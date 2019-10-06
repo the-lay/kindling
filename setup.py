@@ -3,7 +3,7 @@ import re
 
 # version fetch
 with open('kinlin/__init__.py', 'r') as f:
-    version = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", f, re.M).group(1)
+    version = re.search('__version__ = "(.+?)"', f.read()).group(1)
 
 # readme fetch
 with open('README.md', 'r') as f:

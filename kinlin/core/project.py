@@ -1,6 +1,6 @@
 from typing import List
 from .utils import *
-from .experiment import Experiment
+# from .experiment import Experiment
 
 class Project:
     def __init__(self, name: str = 'Untitled Project', notes: str = '', path: Union[Path, str] = None):
@@ -16,13 +16,13 @@ class Project:
         self.path.mkdir(parents=True)  # TODO: this should never happen, but it can raise FileExistError
 
         # experiments
-        self.experiments: List[Experiment] = []
+        # self.experiments: List[Experiment] = []
 
-    def new_experiment(self):
+    def new_experiment(self, name: str):
 
-        new_exp = Experiment()
+        # new_exp = Experiment(project=self)
         # setup experiment?
-        self.experiments += new_exp
+        # self.experiments += new_exp
         pass
 
     def continue_experiment(self):

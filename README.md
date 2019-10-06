@@ -22,6 +22,7 @@ The idea is to have a framework on top of PyTorch that can make research experim
     - Provide easily customizable building blocks for different models
     (**Important**: the project is being developed primarily for my own use (I focus on CNNs for 3D volumetric data),
     so not all features have same priority :) When the project will be stable enough to be used, PRs will be super welcome.)
+    - Moonshot idea: plot model architecture for publication?
 - Moonshot idea: generate reports of experiments automatically?
 - Moonshot idea: have GUI, maybe as a jupyter notebook addon?
 
