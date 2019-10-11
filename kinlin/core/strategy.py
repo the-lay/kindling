@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 
 from enum import Enum
 from typing import List, Callable, Any
@@ -17,8 +18,8 @@ class TrainingEvents(Enum):
     TRAINING_EPOCH_FINISH = 'on_training_epoch_finish'
     TRAINING_BATCH_START = 'on_training_batch_start'
     TRAINING_BATCH_FINISH = 'on_training_batch_finish'
-    VALIDATION_EPOCH_START = 'on_validation_batch_start'
-    VALIDATION_EPOCH_FINISH = 'on_validation_batch_finish'
+    VALIDATION_EPOCH_START = 'on_validation_epoch_start'
+    VALIDATION_EPOCH_FINISH = 'on_validation_epoch_finish'
     VALIDATION_BATCH_START = 'on_validation_batch_start'
     VALIDATION_BATCH_FINISH = 'on_validation_batch_finish'
     TESTING_START = 'on_testing_start'
@@ -72,64 +73,6 @@ class TrainingStrategy:
         raise NotImplementedError
 
     def __call__(self, n_epochs: int = 1, validation: bool = True, verbose: bool = True):
-        raise NotImplementedError
-
-
-class SupervisedTraining(TrainingStrategy):
-
-    def training_epoch(self, epoch: int) -> None:
-        self.model.network.train()
-        self.emit(TrainingEvents.TRAINING_EPOCH_START, epoch, self.model)
-
-        with tqdm(self.dataset.training_dataloader(), desc='Training', unit='batch') as t:
-            for batch_id, batch in enumerate(t):
-                self.emit(TrainingEvents.TRAINING_BATCH_START, batch, batch_id, epoch)
-                loss, y_pred, y_true = self.model.training_fn(batch, batch_id, epoch)
-                self.model.backprop_fn(loss, self.optimizer)
-                self.emit(TrainingEvents.TRAINING_BATCH_FINISH, batch, batch_id, epoch, loss, y_pred, y_true)
-
-                # update progress bar
-                t.set_postfix({k.__class__.__name__: k.value for k in self.model.metrics if not isinstance(k.value, torch.Tensor)})
-                del batch, loss, y_pred, y_true
-
-        self.emit(TrainingEvents.TRAINING_EPOCH_FINISH, epoch, self.model)
-
-    def validation_epoch(self, epoch: int) -> None:
-        self.model.network.eval()
-        self.model.network.train(False)
-        with torch.no_grad():
-            self.emit(TrainingEvents.VALIDATION_EPOCH_START, epoch, self.model)
-
-            with tqdm(self.dataset.validation_dataloader(), desc='Validation', unit='batch') as t:
-                for batch_id, batch in enumerate(t):
-                    self.emit(TrainingEvents.VALIDATION_BATCH_START, batch, batch_id, epoch)
-                    loss, y_pred, y_true = self.model.validation_fn(batch, batch_id, epoch)
-                    self.emit(TrainingEvents.VALIDATION_BATCH_FINISH, batch, batch_id, epoch, loss, y_pred, y_true)
-
-                    # update progress bar
-                    t.set_postfix({k.__class__.__name__: k.print() for k in self.model.metrics})
-
-            self.emit(TrainingEvents.VALIDATION_EPOCH_FINISH, epoch, self.model)
-
-    def test(self) -> None:
-        self.model.network.eval()
-        self.model.network.train(False)
-        with torch.no_grad():
-            self.emit(TrainingEvents.TESTING_START)
-
-            with tqdm(self.dataset.validation_dataloader(), desc='Testing', unit='batch') as t:
-                for batch_id, batch in enumerate(t):
-                    self.emit(TrainingEvents.TESTING_BATCH_START, batch, batch_id)
-                    loss, y_pred, y_true = self.model.validation_fn(batch, batch_id, -1)
-                    self.emit(TrainingEvents.TESTING_BATCH_FINISH, batch, batch_id, loss, y_pred, y_true)
-
-                    # update progress bar
-                    t.set_postfix({k.__class__.__name__: k.print() for k in self.model.metrics})
-
-            self.emit(TrainingEvents.TESTING_FINISH)
-
-    def __call__(self, n_epochs: int = 1, validation: bool = True, verbose: bool = True):
-
         if verbose:
             print(f'Training{" and validating" if validation else ""}'
                   f' for {n_epochs} {"epochs" if n_epochs > 1 else "epoch"}')
@@ -145,3 +88,59 @@ class SupervisedTraining(TrainingStrategy):
 
             if validation:
                 self.validation_epoch(epoch)
+
+
+class SupervisedTraining(TrainingStrategy):
+
+    def training_epoch(self, epoch: int) -> None:
+        self.model.network.train()
+        self.emit(TrainingEvents.TRAINING_EPOCH_START, epoch, self.model)
+
+        with tqdm(self.dataset.training_dataloader(), desc='Training', unit='batch') as t:
+            for batch_id, batch in enumerate(t):
+                self.emit(TrainingEvents.TRAINING_BATCH_START, batch, batch_id, epoch)
+                loss, y_pred, y_true = self.model.training_fn(batch, batch_id, epoch)
+                self.model.backprop_fn(loss, self.optimizer)
+                self.emit(TrainingEvents.TRAINING_BATCH_FINISH, batch, batch_id, epoch,
+                          loss.detach(), y_pred.detach(), y_true)
+
+                # update progress bar
+                t.set_postfix(self.model.progressbar_metrics())
+
+        self.emit(TrainingEvents.TRAINING_EPOCH_FINISH, epoch, self.model)
+
+    def validation_epoch(self, epoch: int) -> None:
+        self.model.network.eval()
+        self.model.network.train(False)
+        with torch.no_grad():
+            self.emit(TrainingEvents.VALIDATION_EPOCH_START, epoch, self.model)
+
+            with tqdm(self.dataset.validation_dataloader(), desc='Validation', unit='batch') as t:
+                for batch_id, batch in enumerate(t):
+                    self.emit(TrainingEvents.VALIDATION_BATCH_START, batch, batch_id, epoch)
+                    loss, y_pred, y_true = self.model.validation_fn(batch, batch_id, epoch)
+                    self.emit(TrainingEvents.VALIDATION_BATCH_FINISH, batch, batch_id, epoch,
+                              loss.detach(), y_pred.detach(), y_true)
+
+                    # update progress bar
+                    t.set_postfix(self.model.progressbar_metrics())
+
+            self.emit(TrainingEvents.VALIDATION_EPOCH_FINISH, epoch, self.model)
+
+    def test(self) -> None:
+        self.model.network.eval()
+        self.model.network.train(False)
+        with torch.no_grad():
+            self.emit(TrainingEvents.TESTING_START)
+
+            with tqdm(self.dataset.validation_dataloader(), desc='Testing', unit='batch') as t:
+                for batch_id, batch in enumerate(t):
+                    self.emit(TrainingEvents.TESTING_BATCH_START, batch, batch_id)
+                    loss, y_pred, y_true = self.model.validation_fn(batch, batch_id, -1)
+                    self.emit(TrainingEvents.TESTING_BATCH_FINISH, batch, batch_id,
+                              loss.detach(), y_pred.detach(), y_true)
+
+                    # update progress bar
+                    t.set_postfix(self.model.progressbar_metrics())
+
+            self.emit(TrainingEvents.TESTING_FINISH)

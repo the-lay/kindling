@@ -3,12 +3,15 @@ import torch
 from enum import Enum
 import torch.nn.functional as f
 import time
+from .utils import readable_time
+import numpy as np
 
 ### Base classes
 class Metric:
     def __init__(self):
         self.name = self.__class__.__name__
         self.value = None
+        self.visible_progress = True
 
         self.setup()
 
@@ -85,24 +88,22 @@ class Metric:
 class RunningEpochMetric(Metric):
     def __init__(self):
         super(RunningEpochMetric, self).__init__()
-        self.started: bool = False
 
     def on_epoch_start(self, epoch: int, model: 'Model') -> None:
-        self.started: bool = False
         self.value = None
 
     def set(self, value) -> None:
-        if self.started:
-            self.value = (self.value + value) / 2
-        else:
+        if self.value is None:
             self.value = value
-            self.started = True
+        else:
+            self.value = (self.value + value) / 2
 
 ### General metrics
 class Epoch(Metric):
     def setup(self) -> None:
         super(Epoch, self).setup()
         self.value: int = 0
+        self.visible_progress = False
 
     def on_training_epoch_finish(self, epoch: int, model: 'Model') -> None:
         super(Epoch, self).on_training_epoch_finish(epoch, model)
@@ -137,7 +138,7 @@ class Loss(RunningEpochMetric):
 class EpochTimer(Metric):
     def setup(self) -> None:
         super(EpochTimer, self).setup()
-        self.name = 'Time'
+        self.visible_progress = False
 
     def on_epoch_start(self, epoch: int, model: 'Model') -> None:
         super(EpochTimer, self).on_epoch_start(epoch, model)
@@ -145,4 +146,7 @@ class EpochTimer(Metric):
 
     def on_epoch_finish(self, epoch: int, model: 'Model') -> None:
         super(EpochTimer, self).on_epoch_finish(epoch, model)
-        self.value = self.value - time.time()
+        self.value = time.time() - self.value
+
+    def print(self) -> str:
+        return readable_time(time.time() - self.value)

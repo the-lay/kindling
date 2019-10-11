@@ -27,10 +27,11 @@ class Baseline(k.Model):
 
     def on_validation_batch_finish(self, batch, batch_id: int, epoch: int,
                                    loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
+        super(Baseline, self).on_validation_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
         # plot one batch for visualization
         if batch_id == 0:
-            print('First batch yay')
-        super(Baseline, self).on_validation_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
+            # TODO plot a batch
+            pass
 
 # Network setup
 n_classes = 13
@@ -43,8 +44,10 @@ model = Baseline(network, 'Baseline Unet', metrics=[k.metrics.ClasswiseDiceCoeff
                                                     k.metrics.ClasswiseJaccardIndex(n_classes),
                                                     k.metrics.DiceCoefficient(n_classes),
                                                     k.metrics.JaccardIndex(n_classes)])
-dataset = k.datasets.SHREC(Path(r'D:\data\shrec2019'), subtomo_size=64, augmentation=True)
-training = k.SupervisedTraining(model, dataset, optimizer, callbacks=[k.callbacks.TensorboardCallback()])
+dataset = k.datasets.SHREC(Path(r'C:\Users\ilja-work-laptop\Desktop\data\shrec'), subtomo_size=64, augmentation=True)
+training = k.SupervisedTraining(model, dataset, optimizer, callbacks=[k.callbacks.TensorboardCallback(log_dir='tensorboard'),
+                                                                      k.callbacks.SpreadsheetCallback(Path('.')),
+                                                                      ])
 
 training(n_epochs=10)
 training.test()
