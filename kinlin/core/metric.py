@@ -1,6 +1,7 @@
 from typing import List, Any, Union
 import torch
 from enum import Enum
+import torch.nn.functional as f
 import time
 
 ### Base classes
@@ -19,7 +20,7 @@ class Metric:
 
     def print(self) -> str:
         try:
-            return f'{self.value:.4f}'
+            return f'{self.value:.3f}'
         except TypeError:
             return ''
 
@@ -29,29 +30,29 @@ class Metric:
     def on_finish(self) -> None:
         pass
 
-    def on_epoch_start(self, epoch: int) -> None:
+    def on_epoch_start(self, epoch: int, model: 'Model') -> None:
         pass
 
-    def on_epoch_finish(self, epoch: int) -> None:
+    def on_epoch_finish(self, epoch: int, model: 'Model') -> None:
         pass
 
-    def on_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int) -> None:
+    def on_batch_start(self, batch, batch_id: int, epoch: int) -> None:
         pass
 
-    def on_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int,
+    def on_batch_finish(self, batch, batch_id: int, epoch: int,
                         loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
         pass
 
-    def on_training_epoch_start(self, epoch: int) -> None:
+    def on_training_epoch_start(self, epoch: int, model: 'Model') -> None:
         pass
 
-    def on_training_epoch_finish(self, epoch: int) -> None:
+    def on_training_epoch_finish(self, epoch: int, model: 'Model') -> None:
         pass
 
-    def on_validation_epoch_start(self, epoch: int) -> None:
+    def on_validation_epoch_start(self, epoch: int, model: 'Model') -> None:
         pass
 
-    def on_validation_epoch_finish(self, epoch: int) -> None:
+    def on_validation_epoch_finish(self, epoch: int, model: 'Model') -> None:
         pass
 
     def on_testing_start(self) -> None:
@@ -60,33 +61,33 @@ class Metric:
     def on_testing_finish(self) -> None:
         pass
 
-    def on_training_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int) -> None:
+    def on_training_batch_start(self, batch, batch_id: int, epoch: int) -> None:
         pass
 
-    def on_training_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int,
+    def on_training_batch_finish(self, batch, batch_id: int, epoch: int,
                                  loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
         pass
 
-    def on_validation_batch_start(self, batch: torch.Tensor, batch_id: int, epoch: int) -> None:
+    def on_validation_batch_start(self, batch, batch_id: int, epoch: int) -> None:
         pass
 
-    def on_validation_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int,
+    def on_validation_batch_finish(self, batch, batch_id: int, epoch: int,
                                    loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
         pass
 
-    def on_testing_batch_start(self, batch: torch.Tensor, batch_id: int) -> None:
+    def on_testing_batch_start(self, batch, batch_id: int) -> None:
         pass
 
-    def on_testing_batch_finish(self, batch: torch.Tensor, batch_id: int,
+    def on_testing_batch_finish(self, batch, batch_id: int,
                                 loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
         pass
 
 class RunningEpochMetric(Metric):
     def __init__(self):
-        self.started: bool = False
         super(RunningEpochMetric, self).__init__()
+        self.started: bool = False
 
-    def on_epoch_start(self, epoch: int) -> None:
+    def on_epoch_start(self, epoch: int, model: 'Model') -> None:
         self.started: bool = False
         self.value = None
 
@@ -100,37 +101,48 @@ class RunningEpochMetric(Metric):
 ### General metrics
 class Epoch(Metric):
     def setup(self) -> None:
+        super(Epoch, self).setup()
         self.value: int = 0
 
-    def on_training_epoch_finish(self, epoch: int) -> None:
+    def on_training_epoch_finish(self, epoch: int, model: 'Model') -> None:
+        super(Epoch, self).on_training_epoch_finish(epoch, model)
         self.set(self.value + 1)
 
-class Accuracy(RunningEpochMetric):
-    def on_epoch_start(self, epoch: int) -> None:
-        super(RunningEpochMetric, self).on_epoch_start(epoch)
+class SemSegAccuracy(RunningEpochMetric):
+    def on_epoch_start(self, epoch: int, model: 'Model') -> None:
+        super(SemSegAccuracy, self).on_epoch_start(epoch, model)
         self.value: float = 0.0
 
-    def on_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int,
+    def on_batch_finish(self, batch, batch_id: int, epoch: int,
                         loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
+        super(SemSegAccuracy, self).on_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
 
-        accuracy = y_pred.eq(y_true).sum().item() / y_true.nelement()
+        # convert to sem. seg. map
+        y_pred_prob = f.softmax(y_pred, dim=1)
+        y_pred_prob = torch.argmax(y_pred_prob, 1)
+        accuracy = y_pred_prob.eq(y_true).sum().item() / y_true.nelement()
+        del y_pred_prob
         self.set(accuracy)
 
 class Loss(RunningEpochMetric):
-    def on_epoch_start(self, epoch: int) -> None:
-        super(RunningEpochMetric, self).on_epoch_start(epoch)
+    def on_epoch_start(self, epoch: int, model: 'Model') -> None:
+        super(Loss, self).on_epoch_start(epoch, model)
         self.value: float = 0.0
 
-    def on_batch_finish(self, batch: torch.Tensor, batch_id: int, epoch: int,
+    def on_batch_finish(self, batch, batch_id: int, epoch: int,
                         loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
-        self.set(loss)
+        super(Loss, self).on_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
+        self.set(loss.item())
 
 class EpochTimer(Metric):
     def setup(self) -> None:
+        super(EpochTimer, self).setup()
         self.name = 'Time'
 
-    def on_epoch_start(self, epoch: int) -> None:
+    def on_epoch_start(self, epoch: int, model: 'Model') -> None:
+        super(EpochTimer, self).on_epoch_start(epoch, model)
         self.value = time.time()
 
-    def on_epoch_finish(self, epoch: int) -> None:
+    def on_epoch_finish(self, epoch: int, model: 'Model') -> None:
+        super(EpochTimer, self).on_epoch_finish(epoch, model)
         self.value = self.value - time.time()

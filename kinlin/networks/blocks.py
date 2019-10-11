@@ -2,10 +2,11 @@ import torch
 import torch.nn as nn
 from torch.nn import init
 import torch.nn.functional as F
+from typing import Union, List
 
 ### General blocks
 def init_weights(net: nn.Module, init_type: str = 'normal', init_gain: float = 0.02):
-    # # https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/models/networks.py
+    # https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/models/networks.py
     """Initialize network weights.
     Parameters:
         net (network)   -- network to be initialized
@@ -34,16 +35,31 @@ def init_weights(net: nn.Module, init_type: str = 'normal', init_gain: float = 0
     net.apply(init_func)
 
 #### 3D U-Net building blocks
+class ReplicateConv3d(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: Union[int, List[int]] = 3, padding: int = 1,
+                 bias: bool = False):
+        super(ReplicateConv3d, self).__init__()
+
+        self.conv = nn.Conv3d(in_channels, out_channels, kernel_size=kernel_size, padding=0, bias=bias)
+        self.padding = padding
+
+    def forward(self, x):
+        x = F.pad(x, [self.padding, self.padding, self.padding, self.padding, self.padding, self.padding], mode='replicate')
+        x = self.conv(x)
+        return x
+
+
 class ConvBnActivation3D(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int = 3, padding: int = None,
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: int = 3, padding: int = -1,
                  bn: bool = True,
                  activation: str = 'leakyrelu', activation_inplace: bool = True):
         super(ConvBnActivation3D, self).__init__()
 
-        if padding is None:
-            padding = (kernel_size - 1) // 2
-
-        self.conv = nn.Conv3d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, bias=False)
+        self.padding = (kernel_size - 1) // 2
+        if padding == -1:
+            self.conv = ReplicateConv3d(in_channels, out_channels, kernel_size=kernel_size, padding=self.padding, bias=False)
+        else:
+            self.conv = nn.Conv3d(in_channels, out_channels, kernel_size=kernel_size, padding=self.padding, bias=False)
 
         if bn:
             self.bn = nn.BatchNorm3d(out_channels)
@@ -102,7 +118,7 @@ class EncoderBlock3D(nn.Module):
         x = self.encode(x)
         if self.residual:
             x = torch.cat([x, input_tensor], dim=1)
-        x = self.encode2(x)
+            x = self.encode2(x)
         x = self.pool(x)
         return x
 
@@ -114,9 +130,8 @@ class DecoderBlock3D(nn.Module):
         super(DecoderBlock3D, self).__init__()
 
         padding = (kernel_size - 1) // 2
-        self.deepsup = deepsup
 
-        self.up_0 = ConvBnActivation3D(x_big_channels + x_channels, x_channels, kernel_size=kernel_size, padding=padding,
+        self.up_0 = ConvBnActivation3D(x_external_channels + x_channels, x_channels, kernel_size=kernel_size, padding=padding,
                                        bn=bn, activation=activation, activation_inplace=activation_inplace)
         self.up_1 = ConvBnActivation3D(x_channels, y_channels, kernel_size=kernel_size, padding=padding,
                                        bn=bn, activation=activation, activation_inplace=activation_inplace)

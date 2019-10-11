@@ -1,4 +1,4 @@
-from .core import Project, Experiment, Model, TrainingEvents, SupervisedTraining, Callback, Dataset
+from .core import Project, Experiment, Model, Metric, RunningEpochMetric, TrainingEvents, SupervisedTraining, Callback, Dataset
 from .core import utils
 from . import metrics
 from . import callbacks

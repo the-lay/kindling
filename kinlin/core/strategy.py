@@ -11,19 +11,19 @@ from .experiment import Experiment
 from .callback import Callback
 
 class TrainingEvents(Enum):
-    START = 'on_start',
-    FINISH = 'on_finish',
-    TRAINING_EPOCH_START = 'on_training_epoch_start',
-    TRAINING_EPOCH_FINISH = 'on_training_epoch_finish',
-    TRAINING_BATCH_START = 'on_training_batch_start',
-    TRAINING_BATCH_FINISH = 'on_training_batch_finish',
-    VALIDATION_EPOCH_START = 'on_validation_batch_start',
-    VALIDATION_EPOCH_FINISH = 'on_validation_batch_finish',
-    VALIDATION_BATCH_START = 'on_validation_batch_start',
+    START = 'on_start'
+    FINISH = 'on_finish'
+    TRAINING_EPOCH_START = 'on_training_epoch_start'
+    TRAINING_EPOCH_FINISH = 'on_training_epoch_finish'
+    TRAINING_BATCH_START = 'on_training_batch_start'
+    TRAINING_BATCH_FINISH = 'on_training_batch_finish'
+    VALIDATION_EPOCH_START = 'on_validation_batch_start'
+    VALIDATION_EPOCH_FINISH = 'on_validation_batch_finish'
+    VALIDATION_BATCH_START = 'on_validation_batch_start'
     VALIDATION_BATCH_FINISH = 'on_validation_batch_finish'
-    TESTING_START = 'on_testing_start',
-    TESTING_FINISH = 'on_testing_finish',
-    TESTING_BATCH_START = 'on_testing_batch_start',
+    TESTING_START = 'on_testing_start'
+    TESTING_FINISH = 'on_testing_finish'
+    TESTING_BATCH_START = 'on_testing_batch_start'
     TESTING_BATCH_FINISH = 'on_testing_batch_finish'
 
 class TrainingStrategy:
@@ -60,7 +60,7 @@ class TrainingStrategy:
 
     def emit(self, event: TrainingEvents, *args, **kwargs):
         for handler in self.handlers[event]:
-            handler(args, kwargs)
+            handler(*args, **kwargs)
 
     def training_epoch(self, epoch: int) -> None:
         raise NotImplementedError
@@ -79,7 +79,7 @@ class SupervisedTraining(TrainingStrategy):
 
     def training_epoch(self, epoch: int) -> None:
         self.model.network.train()
-        self.emit(TrainingEvents.TRAINING_EPOCH_START, epoch)
+        self.emit(TrainingEvents.TRAINING_EPOCH_START, epoch, self.model)
 
         with tqdm(self.dataset.training_dataloader(), desc='Training', unit='batch') as t:
             for batch_id, batch in enumerate(t):
@@ -89,15 +89,16 @@ class SupervisedTraining(TrainingStrategy):
                 self.emit(TrainingEvents.TRAINING_BATCH_FINISH, batch, batch_id, epoch, loss, y_pred, y_true)
 
                 # update progress bar
-                t.set_postfix({k.__class__.__name__: k.print() for k in self.model.metrics})
+                t.set_postfix({k.__class__.__name__: k.value for k in self.model.metrics if not isinstance(k.value, torch.Tensor)})
+                del batch, loss, y_pred, y_true
 
-        self.emit(TrainingEvents.TRAINING_EPOCH_FINISH, epoch)
+        self.emit(TrainingEvents.TRAINING_EPOCH_FINISH, epoch, self.model)
 
     def validation_epoch(self, epoch: int) -> None:
         self.model.network.eval()
         self.model.network.train(False)
         with torch.no_grad():
-            self.emit(TrainingEvents.VALIDATION_EPOCH_START, epoch)
+            self.emit(TrainingEvents.VALIDATION_EPOCH_START, epoch, self.model)
 
             with tqdm(self.dataset.validation_dataloader(), desc='Validation', unit='batch') as t:
                 for batch_id, batch in enumerate(t):
@@ -108,7 +109,7 @@ class SupervisedTraining(TrainingStrategy):
                     # update progress bar
                     t.set_postfix({k.__class__.__name__: k.print() for k in self.model.metrics})
 
-            self.emit(TrainingEvents.VALIDATION_EPOCH_FINISH, epoch)
+            self.emit(TrainingEvents.VALIDATION_EPOCH_FINISH, epoch, self.model)
 
     def test(self) -> None:
         self.model.network.eval()
@@ -134,9 +135,9 @@ class SupervisedTraining(TrainingStrategy):
                   f' for {n_epochs} {"epochs" if n_epochs > 1 else "epoch"}')
             self.model.print_summary()
             self.dataset.print_summary()
-            print(f'Optimizer "{self.optimizer.__class__.__name__}":\n'
+            print(f'Optimizer: {self.optimizer.__class__.__name__}\n'
                   f'\tLearning rate: {self.optimizer.param_groups[0]["lr"]}')
-            print(f'Callbacks: {[callback.__class__.__name__ for callback in self.callbacks]}')
+            print(f'Callbacks: {", ".join(c.__class__.__name__ for c in self.callbacks)}')
 
         for epoch in range(n_epochs):
             print(f'\nEpoch {epoch}:')

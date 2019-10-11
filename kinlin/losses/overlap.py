@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn as nn
 import numpy as np
-from core.utils import to_onehot
+from ..core.utils import to_onehot
 np.set_printoptions(precision=2)
 
 class TverskyLoss(nn.Module):
@@ -20,11 +20,13 @@ class TverskyLoss(nn.Module):
 
         dims = (0, 2, 3, 4)
         intersection = torch.sum(prob * y_true_onehot, dims)
-        fps = torch.sum(prob * (torch.sub(1, y_true_onehot), dims))
+        fps = torch.sum(prob * torch.sub(1, y_true_onehot), dims)
         fns = torch.sum(torch.sub(1, prob) * y_true_onehot, dims)
+
+        del y_true_onehot, prob
 
         num = intersection
         den = intersection + (self.alpha * fps) + (self.beta * fns)
         tversky_index = (num / (den + self.eps))
 
-        return self.n_classes - tversky_index.sum()
+        return torch.sub(self.n_classes, tversky_index.sum())
