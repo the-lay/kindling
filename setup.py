@@ -5,25 +5,27 @@ import re
 with open('kinlin/__init__.py', 'r') as f:
     version = re.search('__version__ = "(.+?)"', f.read()).group(1)
 
-# readme fetch
-with open('README.md', 'r') as f:
-    long_description = f.read()
-
 setuptools.setup(
     name='kinlin',
     version=version,
-    description='WIP', # TODO
-    long_description=long_description,
-    long_description_content_type='text/markdown',
-    license='BSD',
+    description='WIP: PyTorch based framework',  # TODO
+    license='MIT',
     author='the-lay',
-    author_email='ilja.gubin@gmail.com',
+    author_email='ilja@gubins.lv',
     url='https://github.com/the-lay/kinlin',
-    platforms=['any'],
-    install_requires=[ # TODO
+    keywords = [],  # TODO
+    install_requires = [  # TODO
+        'pytorch', 'mrcfile', 'numpy'
     ],
-    packages=setuptools.find_packages(),
-    include_package_data=True,
-    zip_safe=False,
-    test_suite='tests'
+    packages = ['kinlin'],
+    test_suite='tests',
+    classifiers=[
+        'Development Status :: 2 - Pre-Alpha',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 3 :: Only',
+    ]
 )

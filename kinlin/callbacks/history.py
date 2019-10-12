@@ -11,7 +11,7 @@ class TensorboardCallback(Callback):
             try:
                 from tensorboardX import SummaryWriter
             except ImportError:
-                raise ValueError('No Tensorboard installed')
+                raise ValueError('No Tensorboard installed, can\'t use TensorboardCallback')
 
         self.tb = SummaryWriter(flush_secs=30)
 
