@@ -1,6 +1,7 @@
 import torch
+import numpy as np
 from typing import Union, List, Callable, Tuple
-from .utils import generate_random_id
+from .utils import generate_random_id, readable_number
 from .metric import Metric, Epoch, SemSegAccuracy, Loss, EpochTimer
 
 class Model:
@@ -54,30 +55,34 @@ class Model:
         raise NotImplementedError
 
 ### General methods
-    def nparams(self, readable_units: bool = False, trainable: bool = True) -> Union[int, str]:
+    def nparams(self, readable: bool = False, trainable: bool = True) -> Union[int, str]:
         if trainable:
             params = sum(p.numel() for p in self.network.parameters() if p.requires_grad)
         else:
             params = sum(p.numel() for p in self.network.parameters())
 
-        if readable_units:
-            for unit in ['', 'K', 'M', 'B']:
-                if params < 1000:
-                    break
-                params /= 1000
-            return f'{params:.3f}{unit}'
+        if readable:
+            return readable_number(params, unit='', decimal=3)
         else:
             return params
 
     def __repr__(self):
         summary = f'Model: {self.name}\n' \
-                  f'\tTrainable parameters: {self.nparams(readable_units=True)}\n' \
+                  f'\tTrainable parameters: {self.nparams(readable=True)}\n' \
                   f'\tMetrics: {", ".join(m.name for m in self.metrics)}'
 
         return summary
 
     def print_summary(self) -> None:
         print(repr(self))
+
+    def progressbar_metrics(self, skip_metrics: List[str] = None) -> dict:
+        if skip_metrics is None:
+            skip_metrics = []
+
+        metrics = {k.name: k.print() for k in self.metrics
+                   if not isinstance(k.value, np.ndarray) and k.name not in skip_metrics and k.visible_progress}
+        return metrics
 
 ### Events
     def on_start(self) -> None:

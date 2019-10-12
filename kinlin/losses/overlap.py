@@ -1,9 +1,7 @@
 import torch
 import torch.nn.functional as F
 from torch import nn as nn
-import numpy as np
 from ..core.utils import to_onehot
-np.set_printoptions(precision=2)
 
 class TverskyLoss(nn.Module):
     def __init__(self, alpha: float = 0.5, beta: float = 0.5, classes: int = 13):

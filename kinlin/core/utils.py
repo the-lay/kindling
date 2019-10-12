@@ -74,8 +74,22 @@ def to_onehot(tensor: torch.Tensor, num_classes: int) -> torch.Tensor:
                          device=tensor.device)
     return onehot.scatter_(1, tensor.unsqueeze(1), 1)
 
-def second_to_h_m_s(time: int) -> (int, int, int):
+def readable_number(num: int, unit: str, decimal: int = 3) -> str:
+    for mod in ['', 'K', 'M', 'B']:
+        if num < 1000:
+            break
+        num /= 1000
+    return f'{num:.{decimal}f} {mod}{unit}'
+
+def readable_time(seconds: int) -> str:
     # https://github.com/pytorch/ignite/blob/master/ignite/_utils.py
-    mins, secs = divmod(time, 60)
-    hours, mins = divmod(mins, 60)
-    return hours, mins, secs
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+
+    if h > 0:
+        return f'{h:.0f}h {m:.0f}m {s:.0f}s'
+    elif m > 0:
+        return f'{m:.0f}m {s:.1f}s'
+    else:
+        return f'{s:.1f}s'
+

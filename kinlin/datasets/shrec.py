@@ -215,7 +215,7 @@ class SHREC(Dataset):
         super(SHREC, self).__init__()
 
         self.train_dataset = SHRECDataset(path_to_shrec, list(range(7, 8)), subtomo_size, augmentation=augmentation)
-        self.validation_dataset = SHRECDataset(path_to_shrec, [8], subtomo_size, augmentation=False)
+        self.validation_dataset = SHRECDataset(path_to_shrec, [8], subtomo_size, augmentation=augmentation)
         self.test_dataset = SHRECDataset(path_to_shrec, [9], subtomo_size, augmentation=False)
 
     def training_dataloader(self, batch_size=1, shuffle=True):

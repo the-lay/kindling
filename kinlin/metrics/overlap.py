@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 from kinlin.core import Metric, RunningEpochMetric
 from kinlin.core.utils import to_onehot
+import numpy as np
 
 ### Classwise metrics
 
@@ -16,14 +17,9 @@ class ClasswiseTverskyIndex(RunningEpochMetric):
         self.alpha = alpha
         self.beta = beta
         self.eps = eps
-        self.value = []
 
     def print(self) -> str:
         return f'[{",".join(f"{k:.3f}" for k in self.value)}]'
-
-    def on_epoch_start(self, epoch: int, model: 'Model') -> None:
-        super(ClasswiseTverskyIndex, self).on_epoch_start(epoch, model)
-        self.value = []
 
     def on_batch_finish(self, batch, batch_id: int, epoch: int, loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
         super(ClasswiseTverskyIndex, self).on_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
@@ -42,7 +38,7 @@ class ClasswiseTverskyIndex(RunningEpochMetric):
         den = intersection + (self.alpha * fps) + (self.beta * fns)
         tversky_index = (num / (den + self.eps))
 
-        self.set(tversky_index.tolist())
+        self.set(tversky_index.cpu().numpy())
 
 class ClasswiseDiceCoefficient(ClasswiseTverskyIndex):
     def __init__(self, n_classes: int):
@@ -61,7 +57,7 @@ class ClasswiseTanimotoCoefficient(ClasswiseJaccardIndex):
 class TverskyIndex(ClasswiseTverskyIndex):
     def on_batch_finish(self, batch, batch_id: int, epoch: int, loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
         super(TverskyIndex, self).on_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
-        self.value = float(sum(self.value)) / max(len(self.value), 1)
+        self.value = self.value.mean()
 
     def print(self) -> str:
         return f'{self.value:.3f}'
