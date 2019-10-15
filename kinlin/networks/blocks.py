@@ -50,13 +50,18 @@ class ReplicateConv3d(nn.Module):
 
 
 class ConvBnActivation3D(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int = 3, padding: int = -1,
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: int = 3,
+                 padding: int = -1, padding_mode: str = 'replicate',
                  bn: bool = True,
                  activation: str = 'leakyrelu', activation_inplace: bool = True):
         super(ConvBnActivation3D, self).__init__()
 
-        self.padding = (kernel_size - 1) // 2
         if padding == -1:
+            self.padding = (kernel_size - 1) // 2
+        else:
+            self.padding = padding
+
+        if padding_mode == 'replicate':
             self.conv = ReplicateConv3d(in_channels, out_channels, kernel_size=kernel_size, padding=self.padding, bias=False)
         else:
             self.conv = nn.Conv3d(in_channels, out_channels, kernel_size=kernel_size, padding=self.padding, bias=False)

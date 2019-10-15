@@ -1,8 +1,11 @@
-### kinlin
+## 🔥 kinlin
 _derived from **kindling** (n., /ˈkɪnd.lɪŋ/) - material that can be readily ignited_
 
-#### Work is heavily in progress, nothing to see yet, move along ✋👮👉 
-
+---
+#### 🚧 WIP 🚧
+Work is heavily in progress, nothing to see yet, move along ✋👮👉 
+Example: check out `examples/target_example_usage.py`
+---
 #### Idea
 The idea is to have a framework on top of PyTorch that can make research experimentation easier:
 - Reduce generic boilerplate and allow you to focus on the most important
@@ -24,13 +27,13 @@ The idea is to have a framework on top of PyTorch that can make research experim
     so not all features have same priority :) When the project will be stable enough to be used, PRs will be super welcome.)
     - Moonshot idea: plot model architecture for publication?
 - Moonshot idea: generate reports of experiments automatically?
-- Moonshot idea: have GUI, maybe as a jupyter notebook addon?
+- Moonshot idea: have GUI, maybe as a jupyter notebook addon or a separate web-based interface?
 
-#### Overview of classes
+---
+#### Hierarchy overview
 - Projects have Experiments
 - Each Experiment should track everything that you did to your Model (a log: each event start and finish)
 - Model is a combination of pytorch network and functions defining training, validation and testing
 - You can train (and validate) with TrainingStrategy, for example SupervisedTraining
 - Strategy combines Dataset, Model, PyTorch optimizer, Callbacks (like scheduler, checkpointer etc.) and model's metrics
 
-Example: check out `target_example_usage.py`

@@ -93,3 +93,9 @@ def readable_time(seconds: int) -> str:
     else:
         return f'{s:.1f}s'
 
+def create_dir_for(path: Path, name: str) -> None:
+    try:
+        path.mkdir(exist_ok=False)
+    except FileExistsError:
+        raise FileExistsError(f'Directory "{path.absolute()}" already exists'
+                              f'(trying to create for project "{name}")')

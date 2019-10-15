@@ -1,6 +1,6 @@
 from typing import List
 from .utils import *
-# from .experiment import Experiment
+from .experiment import Experiment
 
 class Project:
     def __init__(self, name: str = 'Untitled Project', notes: str = '', path: Union[Path, str] = None):
@@ -10,13 +10,11 @@ class Project:
         self.name: str = name
         self.fname: str = generate_fname(name)
         self.notes: str = notes
-        if isinstance(path, str):
-            path = Path(path)
-        self.path: Path = path / self.fname
-        self.path.mkdir(parents=True)  # TODO: this should never happen, but it can raise FileExistError
+        self.path = Path(__file__).resolve() / self.fname
+        create_dir_for(self.path, self.name)
 
         # experiments
-        # self.experiments: List[Experiment] = []
+        self.experiments: List[Experiment] = []
 
     def new_experiment(self, name: str):
 
