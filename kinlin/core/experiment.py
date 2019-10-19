@@ -1,5 +1,4 @@
 from typing import List, Union
-from .project import Project
 from .utils import *
 
 class Experiment:

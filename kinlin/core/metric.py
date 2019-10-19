@@ -142,11 +142,30 @@ class EpochTimer(Metric):
 
     def on_epoch_start(self, epoch: int, model: 'Model') -> None:
         super(EpochTimer, self).on_epoch_start(epoch, model)
-        self.value = time.time()
+        self.set(time.time())
 
     def on_epoch_finish(self, epoch: int, model: 'Model') -> None:
         super(EpochTimer, self).on_epoch_finish(epoch, model)
-        self.value = time.time() - self.value
+        self.set(time.time() - self.value)
 
     def print(self) -> str:
         return readable_time(time.time() - self.value)
+
+class Mode(Metric):
+
+    def setup(self) -> None:
+        super(Mode, self).setup()
+        self.value = ''
+        self.visible_progress = False
+
+    def on_validation_epoch_finish(self, epoch: int, model: 'Model') -> None:
+        super(Mode, self).on_validation_epoch_finish(epoch, model)
+        self.set('Validation')
+
+    def on_training_epoch_finish(self, epoch: int, model: 'Model') -> None:
+        super(Mode, self).on_training_epoch_finish(epoch, model)
+        self.set('Training')
+
+    def on_testing_finish(self) -> None:
+        super(Mode, self).on_testing_finish()
+        self.set('Testing')

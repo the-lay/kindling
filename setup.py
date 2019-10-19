@@ -21,7 +21,7 @@ setuptools.setup(
     url = 'https://github.com/the-lay/kinlin',
     keywords = [],  # TODO
     install_requires = [  # TODO
-        'pytorch', 'mrcfile', 'numpy'
+        'mrcfile', 'numpy'
     ],
     packages = setuptools.find_packages(),
     test_suite = 'tests',

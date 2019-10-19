@@ -44,9 +44,9 @@ model = Baseline(network, 'Baseline Unet', metrics=[k.metrics.ClasswiseDiceCoeff
                                                     k.metrics.ClasswiseJaccardIndex(n_classes),
                                                     k.metrics.DiceCoefficient(n_classes),
                                                     k.metrics.JaccardIndex(n_classes)])
-dataset = k.datasets.SHREC(Path(r'C:\Users\ilja-work-laptop\Desktop\data\shrec'), subtomo_size=64, augmentation=True)
+dataset = k.datasets.SHREC(Path(r'D:\data\shrec2019'), subtomo_size=64, augmentation=True)
 training = k.SupervisedTraining(model, dataset, optimizer, callbacks=[k.callbacks.TensorboardCallback(log_dir='tensorboard'),
-                                                                      k.callbacks.SpreadsheetCallback(Path('.')),
+                                                                      k.callbacks.ExcelMetricsLogger(Path('.')),
                                                                       ])
 
 training(n_epochs=10)

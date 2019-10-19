@@ -98,4 +98,4 @@ def create_dir_for(path: Path, name: str) -> None:
         path.mkdir(exist_ok=False)
     except FileExistsError:
         raise FileExistsError(f'Directory "{path.absolute()}" already exists'
-                              f'(trying to create for project "{name}")')
+                              f'(trying to create for "{name}")')

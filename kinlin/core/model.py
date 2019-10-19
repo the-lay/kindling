@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from typing import Union, List, Callable, Tuple
 from .utils import generate_random_id, readable_number
-from .metric import Metric, Epoch, SemSegAccuracy, Loss, EpochTimer
+from .metric import Metric, Epoch, SemSegAccuracy, Loss, EpochTimer, Mode
 
 class Model:
 
@@ -18,6 +18,7 @@ class Model:
 
         # set default metrics
         self.metrics.append(Epoch())
+        self.metrics.append(Mode())
         self.metrics.append(Loss())
         self.metrics.append(SemSegAccuracy())
         self.metrics.append(EpochTimer())

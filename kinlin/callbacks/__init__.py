@@ -1,1 +1,1 @@
-from .history import TensorboardCallback, SpreadsheetCallback, History
+from .history import TensorboardCallback, ExcelMetricsLogger, History

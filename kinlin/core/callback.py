@@ -25,40 +25,40 @@ class Callback:
         pass
 
     def on_training_epoch_start(self, epoch: int, model: 'Model') -> None:
-        pass
+        self.on_epoch_start(epoch, model)
 
     def on_training_epoch_finish(self, epoch: int, model: 'Model') -> None:
-        pass
+        self.on_epoch_finish(epoch, model)
 
     def on_validation_epoch_start(self, epoch: int, model: 'Model') -> None:
-        pass
+        self.on_epoch_start(epoch, model)
 
     def on_validation_epoch_finish(self, epoch: int, model: 'Model') -> None:
-        pass
+        self.on_epoch_finish(epoch, model)
 
     def on_testing_start(self) -> None:
-        pass
+        self.on_epoch_start(-1, None)
 
     def on_testing_finish(self) -> None:
-        pass
+        self.on_epoch_finish(-1, None)
 
     def on_training_batch_start(self, batch, batch_id: int, epoch: int) -> None:
-        pass
+        self.on_batch_start(batch, batch_id, epoch)
 
     def on_training_batch_finish(self, batch, batch_id: int, epoch: int,
                                  loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
-        pass
+        self.on_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
 
     def on_validation_batch_start(self, batch, batch_id: int, epoch: int) -> None:
-        pass
+        self.on_batch_start(batch, batch_id, epoch)
 
     def on_validation_batch_finish(self, batch, batch_id: int, epoch: int,
                                    loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
-        pass
+        self.on_batch_finish(batch, batch_id, epoch, loss, y_pred, y_true)
 
     def on_testing_batch_start(self, batch, batch_id: int) -> None:
-        pass
+        self.on_batch_start(batch, batch_id, -1)
 
     def on_testing_batch_finish(self, batch, batch_id: int,
                                 loss: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) -> None:
-        pass
+        self.on_batch_finish(batch, batch_id, -1, loss, y_pred, y_true)
